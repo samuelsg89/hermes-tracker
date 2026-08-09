@@ -1,0 +1,5 @@
+{
+  "callmebot_phone": "+65XXXXXXXX",
+  "callmebot_apikey": "XXXXXXX",
+  "poll_interval_seconds": 3600
+}

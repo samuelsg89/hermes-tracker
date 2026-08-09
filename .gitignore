@@ -1,0 +1,4 @@
+config.json
+tracker.log
+__pycache__/
+*.pyc
