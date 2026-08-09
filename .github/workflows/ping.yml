@@ -1,6 +1,8 @@
 name: Ping test
 on:
   workflow_dispatch: {}
+  schedule:
+    - cron: "7 * * * *"
 jobs:
   ping:
     runs-on: ubuntu-latest
