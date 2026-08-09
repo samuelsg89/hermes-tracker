@@ -3,8 +3,33 @@ on:
   workflow_dispatch: {}
   schedule:
     - cron: "7 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hermes-tracker
+  cancel-in-progress: false
+
 jobs:
-  ping:
+  check:
     runs-on: ubuntu-latest
     steps:
-      - run: echo hello
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: playwright install --with-deps chromium
+      - name: Run tracker
+        env:
+          CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
+          CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
+        run: python tracker.py --once
+      - name: Persist state
+        run: |
+          git config user.name "hermes-tracker-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || git commit -m "Update tracker state [skip ci]"
+          git push
