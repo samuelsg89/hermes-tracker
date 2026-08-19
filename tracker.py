@@ -15,7 +15,7 @@ import os
 import random
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
 
@@ -46,6 +46,13 @@ KEYWORD_GROUPS = [
 # If the listing can't be fetched this many checks in a row (DataDome block,
 # network error, etc.), send one heads-up so it doesn't fail silently for days.
 BLOCK_ALERT_THRESHOLD = 4
+
+# Items observed so far flicker in and out of the listing every few hours
+# (stock likely gets reserved by someone's cart, then released back), not a
+# one-time restock. Don't re-alert for the same item within this many hours
+# of the last alert, so a temporary blip doesn't spam a fresh WhatsApp
+# message every time it happens to reappear.
+ALERT_COOLDOWN_HOURS = 24
 
 DEFAULT_CONFIG = {
     "poll_interval_seconds": 3600,
@@ -237,20 +244,33 @@ def run_once(config: dict, state: dict) -> None:
     prev_seen = state.get("seen")
     if prev_seen is None:
         state["seen"] = matches
+        state["alert_history"] = {}
         log(f"Baseline captured. {len(matches)} matching item(s) currently listed. No alert on first run.")
         save_state(state)
         return
 
-    new_hrefs = [h for h in matches if h not in prev_seen]
-    if new_hrefs:
-        lines = [f"{matches[h]['label']}: {matches[h]['text']} - {h}" for h in new_hrefs]
+    now = datetime.now(timezone.utc)
+    alert_history = state.get("alert_history", {})
+    cooldown = timedelta(hours=ALERT_COOLDOWN_HOURS)
+
+    alert_worthy = []
+    for href in matches:
+        last_alerted = alert_history.get(href)
+        if last_alerted is None or now - datetime.fromisoformat(last_alerted) >= cooldown:
+            alert_worthy.append(href)
+
+    if alert_worthy:
+        lines = [f"{matches[h]['label']}: {matches[h]['text']} - {h}" for h in alert_worthy]
         message = "Hermes SG alert! New listing(s) just appeared:\n- " + "\n- ".join(lines)
-        log(f"NEW MATCH(ES): {new_hrefs}")
+        log(f"ALERT SENT for: {alert_worthy}")
         send_whatsapp(config, message)
+        for href in alert_worthy:
+            alert_history[href] = now.isoformat(timespec="seconds")
     else:
-        log(f"No new matches ({len(matches)} matching item(s) currently listed).")
+        log(f"No alert-worthy matches ({len(matches)} matching item(s) currently listed, all within cooldown).")
 
     state["seen"] = matches
+    state["alert_history"] = alert_history
     save_state(state)
 
 
