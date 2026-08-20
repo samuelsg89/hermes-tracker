@@ -1,13 +1,8 @@
 {
-  "last_checked_utc": "2026-08-20T14:19:36+00:00",
+  "last_checked_utc": "2026-08-20T15:27:11+00:00",
   "consecutive_blocks": 0,
   "block_alert_sent": false,
-  "seen": {
-    "https://www.hermes.com/sg/en/product/picotin-lock-18-bag-H056289CPP0/": {
-      "label": "Picotin 18",
-      "text": "Picotin Lock 18 bag"
-    }
-  },
+  "seen": {},
   "alert_history": {
     "https://www.hermes.com/sg/en/product/picotin-lock-18-bag-H056289CPP0/": "2026-08-20T14:19:47+00:00"
   }

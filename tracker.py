@@ -4,9 +4,11 @@ Loads the combined Hermes SG "Bags and clutches" category page with a
 headless browser (the site sits behind DataDome bot protection, so a plain
 HTTP request gets CAPTCHA'd - a real browser context is needed to get past
 it), extracts every currently-listed product, and sends a WhatsApp alert via
-CallMeBot whenever a configured item (e.g. "Picotin 18", "Garden Party 30")
-newly appears in the listing. Sold-out items simply aren't listed at all, so
-"newly appears" == "just became available to buy".
+CallMeBot for each configured item (e.g. "Picotin 18", "Garden Party 30")
+that both (a) matches by name in the category listing and (b) doesn't say
+"no longer available" on its own product page - a product can sit in the
+category listing while genuinely un-purchasable, so listing membership alone
+isn't a reliable signal.
 """
 
 import argparse
@@ -175,7 +177,33 @@ def collect_all_products(page) -> dict[str, str]:
     return seen
 
 
-def fetch_bag_listing() -> dict[str, str] | None:
+# A product can sit in the category listing while its own page says this -
+# add-to-cart is present but non-functional. Category-listing membership
+# alone is NOT a reliable "can actually buy this" signal; each candidate
+# match's own product page has to be checked too.
+UNAVAILABLE_MARKER = "no longer available"
+
+
+def check_purchasable(page, href: str) -> bool | None:
+    """True if the product page looks purchasable, False if it's explicitly
+    marked unavailable, None if the page couldn't be read (treat as unknown -
+    don't alert on it this run, it'll be rechecked next time)."""
+    try:
+        page.goto(href, wait_until="domcontentloaded", timeout=30000)
+        page.wait_for_timeout(1500 + random.randint(0, 1000))
+        text = page.inner_text("body").lower()
+    except Exception as exc:
+        log(f"Could not load product page to verify purchasability ({href}): {exc}")
+        return None
+
+    if "add to cart" not in text and "add to bag" not in text:
+        log(f"Unexpected product page content ({href}) - treating as unverifiable this run.")
+        return None
+
+    return UNAVAILABLE_MARKER not in text
+
+
+def fetch_matching_bags() -> dict[str, dict] | None:
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
@@ -200,25 +228,40 @@ def fetch_bag_listing() -> dict[str, str] | None:
             page.wait_for_timeout(2000 + random.randint(0, 1500))
 
             listing = collect_all_products(page)
+            if len(listing) < 10:
+                log(f"Suspiciously few products found ({len(listing)}) - treating as a failed fetch.")
+                return None
+
+            candidates = {}
+            for href, text in listing.items():
+                label = match_label(text)
+                if label:
+                    candidates[href] = {"label": label, "text": text}
+
+            matches = {}
+            for href, info in candidates.items():
+                purchasable = check_purchasable(page, href)
+                if purchasable:
+                    matches[href] = info
+                elif purchasable is False:
+                    log(f"Excluded (its own product page says '{UNAVAILABLE_MARKER}'): {href}")
+                else:
+                    log(f"Excluded (unverifiable this run): {href}")
+
+            return matches
         except Exception as exc:
             log(f"Fetch failed: {exc}")
             return None
         finally:
             browser.close()
 
-    if len(listing) < 10:
-        log(f"Suspiciously few products found ({len(listing)}) - treating as a failed fetch.")
-        return None
-
-    return listing
-
 
 def run_once(config: dict, state: dict) -> None:
     state["last_checked_utc"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    listing = fetch_bag_listing()
+    matches = fetch_matching_bags()
 
-    if listing is None:
+    if matches is None:
         state["consecutive_blocks"] = state.get("consecutive_blocks", 0) + 1
         log(f"Fetch unsuccessful (consecutive_blocks={state['consecutive_blocks']}).")
         if state["consecutive_blocks"] >= BLOCK_ALERT_THRESHOLD and not state.get("block_alert_sent"):
@@ -234,12 +277,6 @@ def run_once(config: dict, state: dict) -> None:
 
     state["consecutive_blocks"] = 0
     state["block_alert_sent"] = False
-
-    matches = {}
-    for href, text in listing.items():
-        label = match_label(text)
-        if label:
-            matches[href] = {"label": label, "text": text}
 
     prev_seen = state.get("seen")
     if prev_seen is None:
