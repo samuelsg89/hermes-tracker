@@ -1,9 +1,15 @@
 {
-  "last_checked_utc": "2026-08-23T03:32:23+00:00",
+  "last_checked_utc": "2026-08-23T05:48:39+00:00",
   "consecutive_blocks": 0,
   "block_alert_sent": false,
-  "seen": {},
+  "seen": {
+    "https://www.hermes.com/sg/en/product/garden-party-30-bag-H051568CK18/": {
+      "label": "Garden Party 30",
+      "text": "Garden Party 30 bag"
+    }
+  },
   "alert_history": {
-    "https://www.hermes.com/sg/en/product/picotin-lock-18-bag-H056289CPP0/": "2026-08-20T14:19:47+00:00"
+    "https://www.hermes.com/sg/en/product/picotin-lock-18-bag-H056289CPP0/": "2026-08-20T14:19:47+00:00",
+    "https://www.hermes.com/sg/en/product/garden-party-30-bag-H051568CK18/": "2026-08-23T05:48:53+00:00"
   }
 }
