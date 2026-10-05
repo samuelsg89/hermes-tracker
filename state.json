@@ -1,11 +1,17 @@
 {
-  "last_checked_utc": "2026-10-05T15:56:18+00:00",
+  "last_checked_utc": "2026-10-05T22:35:02+00:00",
   "consecutive_blocks": 0,
   "block_alert_sent": false,
-  "seen": {},
+  "seen": {
+    "https://www.hermes.com/sg/en/product/picotin-lock-18-pocket-bag-H083189CKAA/": {
+      "label": "Picotin 18",
+      "text": "Picotin Lock 18 pocket bag"
+    }
+  },
   "alert_history": {
     "https://www.hermes.com/sg/en/product/picotin-lock-18-bag-H056289CPP0/": "2026-08-20T14:19:47+00:00",
     "https://www.hermes.com/sg/en/product/garden-party-30-bag-H051568CK18/": "2026-08-23T05:48:53+00:00",
-    "https://www.hermes.com/sg/en/product/picotin-lock-18-eclat-bag-H069560CKCG/": "2026-09-25T01:26:14+00:00"
+    "https://www.hermes.com/sg/en/product/picotin-lock-18-eclat-bag-H069560CKCG/": "2026-09-25T01:26:14+00:00",
+    "https://www.hermes.com/sg/en/product/picotin-lock-18-pocket-bag-H083189CKAA/": "2026-10-05T22:35:14+00:00"
   }
 }
